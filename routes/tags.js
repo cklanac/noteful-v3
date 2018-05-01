@@ -5,34 +5,13 @@ const router = express.Router();
 
 const mongoose = require('mongoose');
 
+const Tag = require('../models/tag');
 const Note = require('../models/note');
 
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
-  const { searchTerm, folderId, tagId } = req.query;
-
-  let filter = {};
-
-  if (searchTerm) {
-    // filter.title = { $regex: searchTerm };
-    filter.$or = [{ 'title': { $regex: searchTerm } }, { 'content': { $regex: searchTerm } }];
-  }
-
-  if (folderId) {
-    filter.folderId = folderId;
-  }
-
-  if (folderId) {
-    filter.folderId = folderId;
-  }
-
-  if (tagId) {
-    filter.tags = tagId;
-  }
-
-  Note.find(filter)
-    .populate('tags')
-    .sort({ 'updatedAt': 'desc' })
+  Tag.find()
+    .sort('name')
     .then(results => {
       res.json(results);
     })
@@ -51,8 +30,7 @@ router.get('/:id', (req, res, next) => {
     return next(err);
   }
 
-  Note.findById(id)
-    .populate('tags')
+  Tag.findById(id)
     .then(result => {
       if (result) {
         res.json(result);
@@ -67,35 +45,26 @@ router.get('/:id', (req, res, next) => {
 
 /* ========== POST/CREATE AN ITEM ========== */
 router.post('/', (req, res, next) => {
-  const { title, content, folderId, tags = [] } = req.body;
+  const { name } = req.body;
+
+  const newTag = { name };
 
   /***** Never trust users - validate input *****/
-  if (!title) {
-    const err = new Error('Missing `title` in request body');
+  if (!name) {
+    const err = new Error('Missing `name` in request body');
     err.status = 400;
     return next(err);
   }
 
-  if (tags) {
-    tags.forEach((tag) => {
-      if (!mongoose.Types.ObjectId.isValid(tag)) {
-        const err = new Error('The `id` is not valid');
-        err.status = 400;
-        return next(err);
-      }
-    });
-  }
-
-  const newItem = { title, content, folderId, tags };
-
-  Note.create(newItem)
+  Tag.create(newTag)
     .then(result => {
-      res
-        .location(`${req.originalUrl}/${result.id}`)
-        .status(201)
-        .json(result);
+      res.location(`${req.originalUrl}/${result.id}`).status(201).json(result);
     })
     .catch(err => {
+      if (err.code === 11000) {
+        err = new Error('Tag name already exists');
+        err.status = 400;
+      }
       next(err);
     });
 });
@@ -103,11 +72,11 @@ router.post('/', (req, res, next) => {
 /* ========== PUT/UPDATE A SINGLE ITEM ========== */
 router.put('/:id', (req, res, next) => {
   const { id } = req.params;
-  const { title, content, folderId, tags = []} = req.body;
+  const { name } = req.body;
 
   /***** Never trust users - validate input *****/
-  if (!title) {
-    const err = new Error('Missing `title` in request body');
+  if (!name) {
+    const err = new Error('Missing `name` in request body');
     err.status = 400;
     return next(err);
   }
@@ -118,24 +87,9 @@ router.put('/:id', (req, res, next) => {
     return next(err);
   }
 
-  const updateItem = { title, content, tags };
+  const updateTag = { name };
 
-  if (mongoose.Types.ObjectId.isValid(folderId)) {
-    updateItem.folderId = folderId;
-  }
-
-  if (tags) {
-    tags.forEach((tag) => {
-      if (!mongoose.Types.ObjectId.isValid(tag)) {
-        const err = new Error('The `id` is not valid');
-        err.status = 400;
-        return next(err);
-      }
-    });
-  }
-
-  Note.findByIdAndUpdate(id, updateItem, { new: true })
-    .populate('tags')
+  Tag.findByIdAndUpdate(id, updateTag, { new: true })
     .then(result => {
       if (result) {
         res.json(result);
@@ -144,6 +98,10 @@ router.put('/:id', (req, res, next) => {
       }
     })
     .catch(err => {
+      if (err.code === 11000) {
+        err = new Error('Tag name already exists');
+        err.status = 400;
+      }
       next(err);
     });
 });
@@ -151,14 +109,26 @@ router.put('/:id', (req, res, next) => {
 /* ========== DELETE/REMOVE A SINGLE ITEM ========== */
 router.delete('/:id', (req, res, next) => {
   const { id } = req.params;
+  const tagRemovePromise = Tag.findByIdAndRemove(id);
+  // const tagRemovePromise = Tag.remove({ _id: id }); // NOTE **underscore** _id
 
-  Note.findByIdAndRemove(id)
-    .then(() => {
-      res.status(204).end();
+  const noteUpdatePromise = Note.updateMany(
+    { 'tags': id, },
+    { '$pull': { 'tags': id } }
+  );
+
+  Promise.all([tagRemovePromise, noteUpdatePromise])
+    .then(([tagResult]) => {
+      if (tagResult) {
+        res.status(204).end();
+      } else {
+        next();
+      }
     })
     .catch(err => {
       next(err);
     });
+
 });
 
 module.exports = router;
