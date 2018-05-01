@@ -22,6 +22,10 @@ router.get('/', (req, res, next) => {
     filter.folderId = folderId;
   }
 
+  if (folderId) {
+    filter.folderId = folderId;
+  }
+
   Note.find(filter)
     .sort({ 'updatedAt': 'desc' })
     .then(results => {
