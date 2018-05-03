@@ -14,9 +14,8 @@ router.get('/', (req, res, next) => {
   let filter = {};
 
   if (searchTerm) {
-    const re = new RegExp(searchTerm, 'i');
-    // filter.title = { $regex: re };
-    filter.$or = [{ 'title': { $regex: re } }, { 'content': { $regex: re } }];
+    // filter.title = { $regex: searchTerm };
+    filter.$or = [{ 'title': { $regex: searchTerm } }, { 'content': { $regex: searchTerm } }];
   }
 
   Note.find(filter)
@@ -67,7 +66,10 @@ router.post('/', (req, res, next) => {
 
   Note.create(newItem)
     .then(result => {
-      res.location(`${req.originalUrl}/${result.id}`).status(201).json(result);
+      res
+        .location(`${req.originalUrl}/${result.id}`)
+        .status(201)
+        .json(result);
     })
     .catch(err => {
       next(err);

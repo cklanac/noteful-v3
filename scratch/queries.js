@@ -1,7 +1,6 @@
 'use strict';
 
 const mongoose = require('mongoose');
-mongoose.Promise = global.Promise;
 const { MONGODB_URI } = require('../config');
 
 const Note = require('../models/note');
@@ -12,8 +11,7 @@ mongoose.connect(MONGODB_URI)
     let filter = {};
 
     if (searchTerm) {
-      const re = new RegExp(searchTerm, 'i');
-      filter.title = { $regex: re };
+      filter.title = { $regex: searchTerm };
     }
 
     return Note.find(filter)
