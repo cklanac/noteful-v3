@@ -65,10 +65,9 @@ describe('Noteful API - Notes', function () {
 
     it('should return correct search results for a searchTerm query', function () {
       const searchTerm = 'gaga';
-      const re = new RegExp(searchTerm, 'i');
 
       return Promise.all([
-        Note.find({ title: { $regex: re } }),
+        Note.find({ title: { $regex: searchTerm } }),
         chai.request(app).get(`/api/notes?searchTerm=${searchTerm}`)
       ])
         .then(([data, res]) => {
@@ -83,10 +82,9 @@ describe('Noteful API - Notes', function () {
 
     it('should return an empty array for an incorrect query', function () {
       const searchTerm = 'NotValid';
-      const re = new RegExp(searchTerm, 'i');
 
       return Promise.all([
-        Note.find({ title: { $regex: re } }),
+        Note.find({ title: { $regex: searchTerm } }),
         chai.request(app).get(`/api/notes?searchTerm=${searchTerm}`)
       ])
         .then(([data, res]) => {
