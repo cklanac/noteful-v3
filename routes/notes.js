@@ -22,10 +22,6 @@ router.get('/', (req, res, next) => {
     filter.folderId = folderId;
   }
 
-  if (folderId) {
-    filter.folderId = folderId;
-  }
-
   if (tagId) {
     filter.tags = tagId;
   }
