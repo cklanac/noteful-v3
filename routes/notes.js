@@ -62,9 +62,7 @@ router.post('/', (req, res, next) => {
     return next(err);
   }
 
-  const newItem = { title, content };
-
-  Note.create(newItem)
+  Note.create({ title, content })
     .then(result => {
       res
         .location(`${req.originalUrl}/${result.id}`)
@@ -82,21 +80,19 @@ router.put('/:id', (req, res, next) => {
   const { title, content } = req.body;
 
   /***** Never trust users - validate input *****/
-  if (!title) {
-    const err = new Error('Missing `title` in request body');
-    err.status = 400;
-    return next(err);
-  }
-
   if (!mongoose.Types.ObjectId.isValid(id)) {
     const err = new Error('The `id` is not valid');
     err.status = 400;
     return next(err);
   }
 
-  const updateItem = { title, content };
+  if (!title) {
+    const err = new Error('Missing `title` in request body');
+    err.status = 400;
+    return next(err);
+  }
 
-  Note.findByIdAndUpdate(id, updateItem, { new: true })
+  Note.findByIdAndUpdate(id, { title, content }, { new: true })
     .then(result => {
       if (result) {
         res.json(result);
