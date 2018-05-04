@@ -66,13 +66,13 @@ router.post('/', (req, res, next) => {
     return next(err);
   }
 
-  const newItem = { title, content };
-
-  if (mongoose.Types.ObjectId.isValid(folderId)) {
-    newItem.folderId = folderId;
+  if (folderId && !mongoose.Types.ObjectId.isValid(folderId)) {
+    const err = new Error('The `folderId` is not valid');
+    err.status = 400;
+    return next(err);
   }
 
-  Note.create(newItem)
+  Note.create({ title, content, folderId })
     .then(result => {
       res
         .location(`${req.originalUrl}/${result.id}`)
@@ -90,25 +90,25 @@ router.put('/:id', (req, res, next) => {
   const { title, content, folderId } = req.body;
 
   /***** Never trust users - validate input *****/
-  if (!title) {
-    const err = new Error('Missing `title` in request body');
-    err.status = 400;
-    return next(err);
-  }
-
   if (!mongoose.Types.ObjectId.isValid(id)) {
     const err = new Error('The `id` is not valid');
     err.status = 400;
     return next(err);
   }
 
-  const updateItem = { title, content };
-
-  if (mongoose.Types.ObjectId.isValid(folderId)) {
-    updateItem.folderId = folderId;
+  if (!title) {
+    const err = new Error('Missing `title` in request body');
+    err.status = 400;
+    return next(err);
   }
 
-  Note.findByIdAndUpdate(id, updateItem, { new: true })
+  if (folderId && !mongoose.Types.ObjectId.isValid(folderId)) {
+    const err = new Error('The `folderId` is not valid');
+    err.status = 400;
+    return next(err);
+  }
+
+  Note.findByIdAndUpdate(id, { title, content, folderId}, { new: true })
     .then(result => {
       if (result) {
         res.json(result);
