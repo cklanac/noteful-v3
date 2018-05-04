@@ -143,11 +143,10 @@ describe('Noteful API - Notes', function () {
         });
     });
 
-    it('should respond with a 400 for improperly formatted id', function () {
-      const badId = '99-99-99';
+    it('should respond with status 400 and an error message when `id` is not valid', function () {
 
       return chai.request(app)
-        .get(`/api/notes/${badId}`)
+        .get('/api/notes/INVALID')
         .then(res => {
           expect(res).to.have.status(400);
           expect(res.body.message).to.eq('The `id` is not valid');
@@ -237,15 +236,14 @@ describe('Noteful API - Notes', function () {
     });
 
 
-    it('should respond with a 400 for improperly formatted id', function () {
+    it('should respond with status 400 and an error message when `id` is not valid', function () {
       const updateItem = {
         'title': 'What about dogs?!',
         'content': 'woof woof'
       };
-      const badId = '99-99-99';
 
       return chai.request(app)
-        .put(`/api/notes/${badId}`)
+        .put('/api/notes/INVALID')
         .send(updateItem)
         .then(res => {
           expect(res).to.have.status(400);
@@ -267,14 +265,31 @@ describe('Noteful API - Notes', function () {
         });
     });
 
+    it('should respond with status 400 and an error message when `id` is not valid', function () {
+      const updateItem = {};
+      return chai.request(app)
+        .put('/api/notes/INVALID')
+        .send(updateItem)
+        .then(res => {
+          expect(res).to.have.status(400);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('object');
+          expect(res.body.message).to.equal('The `id` is not valid');
+        });
+    });
+
     it('should return an error when missing "title" field', function () {
       const updateItem = {
         'foo': 'bar'
       };
-
-      return chai.request(app)
-        .put('/api/notes/9999')
-        .send(updateItem)
+      let data;
+      return Note.findOne()
+        .then(_data => {
+          data = _data;
+          return chai.request(app)
+            .put(`/api/notes/${data.id}`)
+            .send(updateItem);
+        })
         .then(res => {
           expect(res).to.have.status(400);
           expect(res).to.be.json;
@@ -290,15 +305,15 @@ describe('Noteful API - Notes', function () {
     it('should delete an existing document and respond with 204', function () {
       let data;
       return Note.findOne()
-        .then( _data => {
+        .then(_data => {
           data = _data;
           return chai.request(app).delete(`/api/notes/${data.id}`);
         })
         .then(function (res) {
           expect(res).to.have.status(204);
-          return Note.count({_id : data.id});
+          return Note.count({ _id: data.id });
         })
-        .then( count => {
+        .then(count => {
           expect(count).to.equal(0);
         });
     });

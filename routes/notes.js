@@ -72,6 +72,12 @@ router.post('/', (req, res, next) => {
     return next(err);
   }
 
+  if (folderId && !mongoose.Types.ObjectId.isValid(folderId)) {
+    const err = new Error('The `folderId` is not valid');
+    err.status = 400;
+    return next(err);
+  }
+
   if (tags) {
     tags.forEach((tag) => {
       if (!mongoose.Types.ObjectId.isValid(tag)) {
@@ -82,9 +88,7 @@ router.post('/', (req, res, next) => {
     });
   }
 
-  const newItem = { title, content, folderId, tags };
-
-  Note.create(newItem)
+  Note.create({ title, content, folderId, tags })
     .then(result => {
       res
         .location(`${req.originalUrl}/${result.id}`)
@@ -99,39 +103,38 @@ router.post('/', (req, res, next) => {
 /* ========== PUT/UPDATE A SINGLE ITEM ========== */
 router.put('/:id', (req, res, next) => {
   const { id } = req.params;
-  const { title, content, folderId, tags = []} = req.body;
+  const { title, content, folderId, tags = [] } = req.body;
 
   /***** Never trust users - validate input *****/
-  if (!title) {
-    const err = new Error('Missing `title` in request body');
-    err.status = 400;
-    return next(err);
-  }
-
   if (!mongoose.Types.ObjectId.isValid(id)) {
     const err = new Error('The `id` is not valid');
     err.status = 400;
     return next(err);
   }
 
-  const updateItem = { title, content, tags };
+  if (!title) {
+    const err = new Error('Missing `title` in request body');
+    err.status = 400;
+    return next(err);
+  }
 
-  if (mongoose.Types.ObjectId.isValid(folderId)) {
-    updateItem.folderId = folderId;
+  if (folderId && !mongoose.Types.ObjectId.isValid(folderId)) {
+    const err = new Error('The `folderId` is not valid');
+    err.status = 400;
+    return next(err);
   }
 
   if (tags) {
     tags.forEach((tag) => {
       if (!mongoose.Types.ObjectId.isValid(tag)) {
-        const err = new Error('The `id` is not valid');
+        const err = new Error('The `tags.id` is not valid');
         err.status = 400;
         return next(err);
       }
     });
   }
 
-  Note.findByIdAndUpdate(id, updateItem, { new: true })
-    .populate('tags')
+  Note.findByIdAndUpdate(id, { title, content, folderId, tags }, { new: true })
     .then(result => {
       if (result) {
         res.json(result);
