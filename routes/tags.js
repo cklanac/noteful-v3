@@ -118,12 +118,8 @@ router.delete('/:id', (req, res, next) => {
   );
 
   Promise.all([tagRemovePromise, noteUpdatePromise])
-    .then(([tagResult]) => {
-      if (tagResult) {
-        res.status(204).end();
-      } else {
-        next();
-      }
+    .then(() => {
+      res.status(204).end();
     })
     .catch(err => {
       next(err);

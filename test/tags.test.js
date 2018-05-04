@@ -266,11 +266,24 @@ describe('Noteful API - Tags', function () {
 
   describe('DELETE /api/tags/:id', function () {
 
-    it('should delete an item by id', function () {
-      return Tag.findOne().select('id name')
-        .then(data => {
+    it('should delete an existing document and respond with 204', function () {
+      let data;
+      return Tag.findOne()
+        .then( _data => {
+          data = _data;
           return chai.request(app).delete(`/api/tags/${data.id}`);
         })
+        .then(function (res) {
+          expect(res).to.have.status(204);
+          return Tag.count({_id : data.id});
+        })
+        .then( count => {
+          expect(count).to.equal(0);
+        });
+    });
+
+    it('should respond with 404 when document does not exist', function () {
+      return chai.request(app).delete('/api/tags/DOESNOTEXIST')
         .then((res) => {
           expect(res).to.have.status(204);
         });
